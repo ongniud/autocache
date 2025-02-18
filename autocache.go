@@ -17,15 +17,15 @@ var (
 	ErrNotFound = errors.New("not found")
 )
 
-// BackSourceFunc is a function type for back-source queries.
-type BackSourceFunc func(ctx context.Context, keys []string) (map[string]interface{}, error)
+// BackingFunc is a function type for back-source queries.
+type BackingFunc func(ctx context.Context, keys []string) (map[string]interface{}, error)
 
 // Options defines the configuration options for the AutoCache.
 type Options struct {
-	BatchSize     int
-	BatchInterval time.Duration
-	BatchTimeout  time.Duration
-	ChanSize      int
+	LoadBatchSize int
+	LoadInterval  time.Duration
+	LoadTimeout   time.Duration
+	LoadBuffSize  int
 	Expiration    time.Duration
 	CleanInterval time.Duration
 }
@@ -35,7 +35,7 @@ type Option func(*Options)
 
 // AutoCache represents the cache structure.
 type AutoCache struct {
-	backing    BackSourceFunc
+	backing    BackingFunc
 	opts       *Options
 	mu         sync.Mutex
 	cache      *Cache
@@ -47,12 +47,12 @@ type AutoCache struct {
 }
 
 // NewAutoCache creates a new cache instance.
-func NewAutoCache(backing BackSourceFunc, options ...Option) *AutoCache {
+func NewAutoCache(backing BackingFunc, options ...Option) *AutoCache {
 	opts := &Options{
-		BatchSize:     10,
-		BatchInterval: 100 * time.Millisecond,
-		BatchTimeout:  3 * time.Second,
-		ChanSize:      1000,
+		LoadBatchSize: 10,
+		LoadInterval:  100 * time.Millisecond,
+		LoadTimeout:   3 * time.Second,
+		LoadBuffSize:  1000,
 		Expiration:    time.Minute * 5,
 		CleanInterval: time.Minute * 10,
 	}
@@ -64,10 +64,10 @@ func NewAutoCache(backing BackSourceFunc, options ...Option) *AutoCache {
 		opts:       opts,
 		cache:      NewCache(opts.Expiration),
 		loading:    make(map[string]chan struct{}),
-		taskChan:   make(chan string, opts.ChanSize),
+		taskChan:   make(chan string, opts.LoadBuffSize),
 		backing:    backing,
 		stopChan:   make(chan struct{}),
-		loadTimer:  time.NewTimer(opts.BatchInterval),
+		loadTimer:  time.NewTimer(opts.LoadInterval),
 		cleanTimer: time.NewTimer(opts.CleanInterval),
 	}
 	go cache.load()
@@ -145,11 +145,11 @@ func (c *AutoCache) load() {
 		select {
 		case key := <-c.taskChan:
 			batch = append(batch, key)
-			if len(batch) >= c.opts.BatchSize {
+			if len(batch) >= c.opts.LoadBatchSize {
 				c.loadTimer.Stop()
 				c.batchLoad(batch)
 				batch = nil
-				c.loadTimer.Reset(c.opts.BatchInterval)
+				c.loadTimer.Reset(c.opts.LoadInterval)
 			}
 		case <-c.loadTimer.C:
 			if len(batch) > 0 {
@@ -157,7 +157,7 @@ func (c *AutoCache) load() {
 				c.batchLoad(batch)
 				batch = nil
 			}
-			c.loadTimer.Reset(c.opts.BatchInterval)
+			c.loadTimer.Reset(c.opts.LoadInterval)
 		case <-c.stopChan:
 			if c.loadTimer.Stop() {
 				select {
@@ -193,7 +193,7 @@ func (c *AutoCache) cleanup() {
 
 // batchLoad processes batch back-source queries.
 func (c *AutoCache) batchLoad(keys []string) {
-	ctx, cancel := context.WithTimeout(context.Background(), c.opts.BatchTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), c.opts.LoadTimeout)
 	defer cancel()
 	values, err := c.backing(ctx, keys)
 	if err != nil {
@@ -230,31 +230,31 @@ func (c *AutoCache) Close() {
 	close(c.stopChan)
 }
 
-// WithBatchSize sets the batch size.
-func WithBatchSize(size int) Option {
+// WithLoadBatchSize sets the batch size.
+func WithLoadBatchSize(size int) Option {
 	return func(opts *Options) {
-		opts.BatchSize = size
+		opts.LoadBatchSize = size
 	}
 }
 
-// WithBatchInterval sets the batch interval.
-func WithBatchInterval(interval time.Duration) Option {
+// WithLoadInterval sets the batch interval.
+func WithLoadInterval(interval time.Duration) Option {
 	return func(opts *Options) {
-		opts.BatchInterval = interval
+		opts.LoadInterval = interval
 	}
 }
 
-// WithBatchTimeout sets the batch timeout.
-func WithBatchTimeout(timeout time.Duration) Option {
+// WithLoadTimeout sets the batch timeout.
+func WithLoadTimeout(timeout time.Duration) Option {
 	return func(opts *Options) {
-		opts.BatchTimeout = timeout
+		opts.LoadTimeout = timeout
 	}
 }
 
-// WithChanSize sets the task channel size.
-func WithChanSize(size int) Option {
+// WithLoadBuffSize sets the task channel size.
+func WithLoadBuffSize(size int) Option {
 	return func(opts *Options) {
-		opts.ChanSize = size
+		opts.LoadBuffSize = size
 	}
 }
 

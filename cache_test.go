@@ -6,7 +6,7 @@ import (
 )
 
 func TestCache_SetAndGet(t *testing.T) {
-	cache := NewCache(2*time.Second, 1*time.Second)
+	cache := NewCache(2 * time.Second)
 
 	cache.Set("key1", "value1", DefaultExpiration)
 	value, found := cache.Get("key1")
@@ -19,7 +19,7 @@ func TestCache_SetAndGet(t *testing.T) {
 }
 
 func TestCache_Expiration(t *testing.T) {
-	cache := NewCache(1*time.Second, 1*time.Second)
+	cache := NewCache(1 * time.Second)
 
 	cache.Set("key1", "value1", DefaultExpiration)
 	time.Sleep(2 * time.Second) // Wait for expiration
@@ -31,7 +31,7 @@ func TestCache_Expiration(t *testing.T) {
 }
 
 func TestCache_Delete(t *testing.T) {
-	cache := NewCache(2*time.Second, 1*time.Second)
+	cache := NewCache(2 * time.Second)
 
 	cache.Set("key1", "value1", DefaultExpiration)
 	cache.Delete("key1")
@@ -43,7 +43,7 @@ func TestCache_Delete(t *testing.T) {
 }
 
 func TestCache_NoExpiration(t *testing.T) {
-	cache := NewCache(NoExpiration, 1*time.Second)
+	cache := NewCache(NoExpiration)
 
 	cache.Set("key1", "value1", NoExpiration)
 	time.Sleep(2 * time.Second) // Wait for more than the default TTL
@@ -58,11 +58,11 @@ func TestCache_NoExpiration(t *testing.T) {
 }
 
 func TestCache_Cleanup(t *testing.T) {
-	cache := NewCache(1*time.Second, 500*time.Millisecond)
+	cache := NewCache(1 * time.Second)
 
 	cache.Set("key1", "value1", DefaultExpiration)
 	time.Sleep(2 * time.Second) // Allow cleanup to run
-
+	cache.Cleanup()
 	_, found := cache.Get("key1")
 	if found {
 		t.Errorf("Expected key1 to be expired and cleaned up, but it was found in the cache.")

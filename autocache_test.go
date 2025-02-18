@@ -12,11 +12,11 @@ import (
 
 // TestCache_Get tests cache retrieval and batch loading.
 func TestCache_Get(t *testing.T) {
-	cache := NewAutoCache(MockBackSourceFunc,
-		WithBatchSize(5),
-		WithBatchInterval(100*time.Millisecond),
-		WithBatchTimeout(1*time.Second),
-		WithChanSize(100),
+	cache := NewAutoCache(MockBackingFunc,
+		WithLoadBatchSize(5),
+		WithLoadInterval(100*time.Millisecond),
+		WithLoadTimeout(1*time.Second),
+		WithLoadBuffSize(100),
 	)
 	defer cache.Close()
 
@@ -32,11 +32,11 @@ func TestCache_Get(t *testing.T) {
 
 // TestCache_TryGet tests non-blocking retrieval.
 func TestCache_TryGet(t *testing.T) {
-	cache := NewAutoCache(MockBackSourceFunc,
-		WithBatchSize(5),
-		WithBatchInterval(100*time.Millisecond),
-		WithBatchTimeout(1*time.Second),
-		WithChanSize(100),
+	cache := NewAutoCache(MockBackingFunc,
+		WithLoadBatchSize(5),
+		WithLoadInterval(100*time.Millisecond),
+		WithLoadTimeout(1*time.Second),
+		WithLoadBuffSize(100),
 	)
 	defer cache.Close()
 
@@ -54,11 +54,11 @@ func TestCache_TryGet(t *testing.T) {
 
 // TestCache_Concurrency ensures the cache handles concurrent access correctly.
 func TestCache_Concurrency(t *testing.T) {
-	cache := NewAutoCache(MockBackSourceFunc,
-		WithBatchSize(10),
-		WithBatchInterval(100*time.Millisecond),
-		WithBatchTimeout(1*time.Second),
-		WithChanSize(100),
+	cache := NewAutoCache(MockBackingFunc,
+		WithLoadBatchSize(10),
+		WithLoadInterval(100*time.Millisecond),
+		WithLoadTimeout(1*time.Second),
+		WithLoadBuffSize(100),
 	)
 	defer cache.Close()
 
@@ -93,10 +93,10 @@ func TestCache_Timeout(t *testing.T) {
 			time.Sleep(2 * time.Second) // Simulate long backend response
 			return nil, errors.New("timeout")
 		},
-		WithBatchSize(5),
-		WithBatchInterval(100*time.Millisecond),
-		WithBatchTimeout(500*time.Millisecond), // Shorter timeout
-		WithChanSize(100),
+		WithLoadBatchSize(5),
+		WithLoadInterval(100*time.Millisecond),
+		WithLoadTimeout(500*time.Millisecond), // Shorter timeout
+		WithLoadBuffSize(100),
 	)
 	defer cache.Close()
 
@@ -111,11 +111,11 @@ func TestCache_Timeout(t *testing.T) {
 
 // TestCache_ChanFull ensures cache handles full task channel correctly.
 func TestCache_ChanFull(t *testing.T) {
-	cache := NewAutoCache(MockBackSourceFunc,
-		WithBatchSize(5),
-		WithBatchInterval(100*time.Millisecond),
-		WithBatchTimeout(1*time.Second),
-		WithChanSize(1), // Very small channel size
+	cache := NewAutoCache(MockBackingFunc,
+		WithLoadBatchSize(5),
+		WithLoadInterval(100*time.Millisecond),
+		WithLoadTimeout(1*time.Second),
+		WithLoadBuffSize(1), // Very small channel size
 	)
 	defer cache.Close()
 
@@ -128,11 +128,11 @@ func TestCache_ChanFull(t *testing.T) {
 
 // BenchmarkCache_SingleThread tests the cache performance with a single-threaded access pattern
 func BenchmarkCache_SingleThread(b *testing.B) {
-	cache := NewAutoCache(MockBackSourceFunc,
-		WithBatchSize(10),
-		WithBatchInterval(100*time.Millisecond),
-		WithBatchTimeout(3*time.Second),
-		WithChanSize(100),
+	cache := NewAutoCache(MockBackingFunc,
+		WithLoadBatchSize(10),
+		WithLoadInterval(100*time.Millisecond),
+		WithLoadTimeout(3*time.Second),
+		WithLoadBuffSize(100),
 	)
 	defer cache.Close()
 
@@ -145,11 +145,11 @@ func BenchmarkCache_SingleThread(b *testing.B) {
 
 // BenchmarkCache_Concurrent tests the cache performance under concurrent load
 func BenchmarkCache_Concurrent(b *testing.B) {
-	cache := NewAutoCache(MockBackSourceFunc,
-		WithBatchSize(10),
-		WithBatchInterval(100*time.Millisecond),
-		WithBatchTimeout(3*time.Second),
-		WithChanSize(1000),
+	cache := NewAutoCache(MockBackingFunc,
+		WithLoadBatchSize(10),
+		WithLoadInterval(100*time.Millisecond),
+		WithLoadTimeout(3*time.Second),
+		WithLoadBuffSize(1000),
 	)
 	defer cache.Close()
 
@@ -164,11 +164,11 @@ func BenchmarkCache_Concurrent(b *testing.B) {
 
 // BenchmarkCache_StressTest simulates a high-load environment
 func BenchmarkCache_StressTest(b *testing.B) {
-	cache := NewAutoCache(MockBackSourceFunc,
-		WithBatchSize(50),
-		WithBatchInterval(50*time.Millisecond),
-		WithBatchTimeout(2*time.Second),
-		WithChanSize(5000),
+	cache := NewAutoCache(MockBackingFunc,
+		WithLoadBatchSize(50),
+		WithLoadInterval(50*time.Millisecond),
+		WithLoadTimeout(2*time.Second),
+		WithLoadBuffSize(5000),
 	)
 	defer cache.Close()
 
@@ -189,11 +189,11 @@ func BenchmarkCache_StressTest(b *testing.B) {
 
 // BenchmarkCache_BatchEfficiency measures batch processing effectiveness
 func BenchmarkCache_BatchEfficiency(b *testing.B) {
-	cache := NewAutoCache(MockBackSourceFunc,
-		WithBatchSize(10),
-		WithBatchInterval(10*time.Millisecond),
-		WithBatchTimeout(1*time.Second),
-		WithChanSize(1000),
+	cache := NewAutoCache(MockBackingFunc,
+		WithLoadBatchSize(10),
+		WithLoadInterval(10*time.Millisecond),
+		WithLoadTimeout(1*time.Second),
+		WithLoadBuffSize(1000),
 	)
 	defer cache.Close()
 
@@ -203,8 +203,8 @@ func BenchmarkCache_BatchEfficiency(b *testing.B) {
 	}
 }
 
-// MockBackSourceFunc simulates a backend data source.
-func MockBackSourceFunc(ctx context.Context, keys []string) (map[string]interface{}, error) {
+// MockBackingFunc simulates a backend data source.
+func MockBackingFunc(ctx context.Context, keys []string) (map[string]interface{}, error) {
 	values := make(map[string]interface{})
 	for _, key := range keys {
 		values[key] = "value_" + key
