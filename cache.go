@@ -67,7 +67,6 @@ func (c *Cache) Delete(key string) {
 
 // Cleanup removes expired entries from the cache
 func (c *Cache) Cleanup() {
-
 	now := time.Now().UnixNano()
 	for key, it := range c.data {
 		if it.expiration > 0 && it.expiration <= now {

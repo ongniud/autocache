@@ -191,7 +191,6 @@ func (c *AutoCache) batchLoad(keys []string) {
 
 	c.mu.Lock()
 	defer c.mu.Unlock()
-
 	for _, key := range keys {
 		if val, ok := values[key]; ok {
 			c.cache.Set(key, val, c.opts.Expiration)
