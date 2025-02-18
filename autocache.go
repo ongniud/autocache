@@ -27,7 +27,7 @@ type AutoCache struct {
 	mu         sync.Mutex
 	cache      *Cache
 	loading    map[string]chan struct{}
-	taskChan   chan string
+	buffer     chan string
 	stopChan   chan struct{}
 	loadTimer  *time.Timer
 	cleanTimer *time.Timer
@@ -44,7 +44,7 @@ func NewAutoCache(backing BackingFunc, options ...Option) *AutoCache {
 		opts:       opts,
 		cache:      NewCache(opts.Expiration),
 		loading:    make(map[string]chan struct{}),
-		taskChan:   make(chan string, opts.LoadBuffSize),
+		buffer:     make(chan string, opts.LoadBuffSize),
 		backing:    backing,
 		stopChan:   make(chan struct{}),
 		loadTimer:  time.NewTimer(opts.LoadInterval),
@@ -69,7 +69,7 @@ func (c *AutoCache) Get(ctx context.Context, key string) (interface{}, error) {
 	ch, ok := c.loading[key]
 	if !ok {
 		select {
-		case c.taskChan <- key:
+		case c.buffer <- key:
 			ch = make(chan struct{})
 			c.loading[key] = ch
 		default:
@@ -106,7 +106,7 @@ func (c *AutoCache) TryGet(key string) (interface{}, error) {
 	ch, ok := c.loading[key]
 	if !ok {
 		select {
-		case c.taskChan <- key:
+		case c.buffer <- key:
 			ch = make(chan struct{})
 			c.loading[key] = ch
 		default:
@@ -123,7 +123,7 @@ func (c *AutoCache) load() {
 	var batch []string
 	for {
 		select {
-		case key := <-c.taskChan:
+		case key := <-c.buffer:
 			batch = append(batch, key)
 			if len(batch) >= c.opts.LoadBatchSize {
 				c.loadTimer.Stop()

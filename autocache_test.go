@@ -119,7 +119,7 @@ func TestCache_ChanFull(t *testing.T) {
 	)
 	defer cache.Close()
 
-	cache.taskChan <- "preloadedKey"
+	cache.buffer <- "preloadedKey"
 	_, err := cache.Get(context.Background(), "extraKey")
 	if err != ErrChanFull {
 		t.Errorf("expected ErrChanFull, got %v", err)
